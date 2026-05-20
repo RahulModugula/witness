@@ -1,16 +1,21 @@
 {
   "videoMetadata": {
-    "filename": "5a59d913-dd14-4693-a884-4e480c9dca77.mp4",
+    "filename": "7dd869c6-8098-474b-a138-d9e312923854.mp4",
     "duration_seconds": 8.0,
     "frame_count": 192,
     "fps": 24.0,
     "width": 1280,
     "height": 720,
     "codec": "h264",
-    "processing_time_seconds": 25.05,
+    "processing_time_seconds": 25.735,
     "model": "yolov8s-worldv2.pt",
     "tracker": "botsort",
-    "degraded_interaction": false
+    "degraded_interaction": false,
+    "stage_timings": {
+      "detect_track_seconds": 21.724,
+      "hand_pose_seconds": 3.584,
+      "assemble_keyframes_seconds": 0.303
+    }
   },
   "objectsDetected": [
     {
@@ -332,169 +337,169 @@
       "frame_number": 14,
       "type": "interaction_peak",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_interaction_14.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_interaction_14.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_interaction_14.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_interaction_14.jpg"
     },
     {
       "frame_number": 41,
       "type": "interaction_peak",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_interaction_41.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_interaction_41.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_interaction_41.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_interaction_41.jpg"
     },
     {
       "frame_number": 55,
       "type": "motion_transition",
       "object_id": 5,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj5_motion_55.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj5_motion_55.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj5_motion_55.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj5_motion_55.jpg"
     },
     {
       "frame_number": 60,
       "type": "motion_transition",
       "object_id": 4,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj4_motion_60.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj4_motion_60.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj4_motion_60.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj4_motion_60.jpg"
     },
     {
       "frame_number": 69,
       "type": "motion_transition",
       "object_id": 4,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj4_motion_69.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj4_motion_69.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj4_motion_69.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj4_motion_69.jpg"
     },
     {
       "frame_number": 104,
       "type": "motion_transition",
       "object_id": 4,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj4_motion_104.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj4_motion_104.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj4_motion_104.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj4_motion_104.jpg"
     },
     {
       "frame_number": 111,
       "type": "motion_transition",
       "object_id": 5,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj5_motion_111.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj5_motion_111.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj5_motion_111.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj5_motion_111.jpg"
     },
     {
       "frame_number": 114,
       "type": "interaction_peak",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_interaction_114.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_interaction_114.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_interaction_114.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_interaction_114.jpg"
     },
     {
       "frame_number": 119,
       "type": "interaction_peak",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_interaction_119.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_interaction_119.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_interaction_119.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_interaction_119.jpg"
     },
     {
       "frame_number": 123,
       "type": "interaction_peak",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_interaction_123.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_interaction_123.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_interaction_123.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_interaction_123.jpg"
     },
     {
       "frame_number": 141,
       "type": "motion_transition",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_motion_141.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_motion_141.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_motion_141.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_motion_141.jpg"
     },
     {
       "frame_number": 150,
       "type": "motion_transition",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_motion_150.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_motion_150.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_motion_150.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_motion_150.jpg"
     },
     {
       "frame_number": 158,
       "type": "motion_transition",
       "object_id": 1,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj1_motion_158.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj1_motion_158.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj1_motion_158.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj1_motion_158.jpg"
     },
     {
       "frame_number": 162,
       "type": "motion_transition",
       "object_id": 6,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj6_motion_162.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj6_motion_162.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj6_motion_162.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj6_motion_162.jpg"
     },
     {
       "frame_number": 163,
       "type": "motion_transition",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_motion_163.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_motion_163.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_motion_163.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_motion_163.jpg"
     },
     {
       "frame_number": 166,
       "type": "motion_transition",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_motion_166.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_motion_166.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_motion_166.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_motion_166.jpg"
     },
     {
       "frame_number": 169,
       "type": "motion_transition",
       "object_id": 1,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj1_motion_169.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj1_motion_169.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj1_motion_169.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj1_motion_169.jpg"
     },
     {
       "frame_number": 169,
       "type": "motion_transition",
       "object_id": 9,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj9_motion_169.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj9_motion_169.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj9_motion_169.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj9_motion_169.jpg"
     },
     {
       "frame_number": 180,
       "type": "motion_transition",
       "object_id": 6,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj6_motion_180.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj6_motion_180.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj6_motion_180.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj6_motion_180.jpg"
     },
     {
       "frame_number": 181,
       "type": "motion_transition",
       "object_id": 1,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj1_motion_181.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj1_motion_181.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj1_motion_181.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj1_motion_181.jpg"
     },
     {
       "frame_number": 182,
       "type": "motion_transition",
       "object_id": 7,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj7_motion_182.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj7_motion_182.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj7_motion_182.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj7_motion_182.jpg"
     },
     {
       "frame_number": 183,
       "type": "motion_transition",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_motion_183.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_motion_183.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_motion_183.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_motion_183.jpg"
     },
     {
       "frame_number": 188,
       "type": "motion_transition",
       "object_id": 2,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj2_motion_188.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj2_motion_188.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj2_motion_188.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj2_motion_188.jpg"
     },
     {
       "frame_number": 188,
       "type": "motion_transition",
       "object_id": 8,
-      "image_path": "keyframes/5a59d913-dd14-4693-a884-4e480c9dca77/obj8_motion_188.jpg",
-      "url": "/tasks/5a59d913-dd14-4693-a884-4e480c9dca77/keyframes/obj8_motion_188.jpg"
+      "image_path": "keyframes/7dd869c6-8098-474b-a138-d9e312923854/obj8_motion_188.jpg",
+      "url": "/tasks/7dd869c6-8098-474b-a138-d9e312923854/keyframes/obj8_motion_188.jpg"
     }
   ]
 }

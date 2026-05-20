@@ -56,6 +56,12 @@ class HealthOut(BaseModel):
 # --------- result payload (matches docs/brief.md §7 exactly) ---------
 
 
+class StageTimings(BaseModel):
+    detect_track_seconds: float
+    hand_pose_seconds: float
+    assemble_keyframes_seconds: float
+
+
 class VideoMetadata(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -70,6 +76,7 @@ class VideoMetadata(BaseModel):
     model: str
     tracker: str
     degraded_interaction: bool = False
+    stage_timings: Optional[StageTimings] = None
 
 
 class MotionInterval(BaseModel):

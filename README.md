@@ -7,6 +7,8 @@ happened: which objects were on screen, which moved, and which the person
 actually touched. The output is JSON plus annotated keyframes you can show
 a reviewer.
 
+![witness demo — the 5 interaction-peak frames + 2 motion transitions from the sample video](docs/demo.gif)
+
 Built as the SDE intern technical assessment for [Edrevel AI](https://edrevel.com).
 Edrevel's existing product qualifies workers through self-assessments, manager
 reviews, and SOP-derived training modules — the [Britannia case
@@ -42,11 +44,24 @@ CPU-only, MacBook Pro M1 Max:
 
 | metric                | value                                       |
 |-----------------------|---------------------------------------------|
-| pipeline wall time    | 25.0s on the 8s sample (~3x real-time)      |
+| pipeline wall time    | 25.7s on the 8s sample (~3x real-time)      |
 | objects detected      | 10 (5 distinct classes)                     |
 | interactions found    | 5 (technician ↔ spectrophotometer)          |
 | keyframes saved       | 24 (motion transitions + interaction peaks) |
 | tests                 | 34 pytest cases, ~0.8s                      |
+
+Per-stage latency breakdown (also reported in every result JSON under
+`videoMetadata.stage_timings`):
+
+| stage                   | time   | share | what runs                          |
+|-------------------------|--------|-------|------------------------------------|
+| detect + track          | 21.7s  | 84%   | YOLO-World inference + BoT-SORT    |
+| hand pose               | 3.6s   | 14%   | MediaPipe Hands over each frame    |
+| assemble + keyframes    | 0.3s   | 1%    | motion + interaction + bbox draws  |
+
+If this needed to be faster, the lever is the detector: an ONNX export
+plus int8 quantization would roughly halve that line. The pure-function
+math layer is already negligible.
 
 A representative interaction-peak keyframe (frame 119, technician's hand
 visibly on the instrument):

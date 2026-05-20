@@ -92,12 +92,18 @@ def _build_payload(task_id: str, input_path: str, processing_time: float) -> dic
     from .pipeline.video import read_metadata
 
     meta = read_metadata(input_path)
+
+    t0 = time.time()
     detector = get_detector()
     detections = detector.track_video(input_path)
+    t_detect = time.time() - t0
 
+    t0 = time.time()
     pose = get_pose_extractor()
     hands_by_frame = pose.extract_video(input_path)
+    t_pose = time.time() - t0
 
+    t0 = time.time()
     payload = assemble_result(
         task_id=task_id,
         video_path=input_path,
@@ -106,8 +112,18 @@ def _build_payload(task_id: str, input_path: str, processing_time: float) -> dic
         hands_by_frame=hands_by_frame,
         processing_time=processing_time,
     )
-    # Validate before write — catches schema drift immediately.
     ResultPayload.model_validate(payload)
+    t_assemble = time.time() - t0
+
+    log.info(
+        "stage_timings task=%s detect=%.2fs pose=%.2fs assemble=%.2fs",
+        task_id, t_detect, t_pose, t_assemble,
+    )
+    payload["videoMetadata"]["stage_timings"] = {
+        "detect_track_seconds": round(t_detect, 3),
+        "hand_pose_seconds": round(t_pose, 3),
+        "assemble_keyframes_seconds": round(t_assemble, 3),
+    }
     return payload
 
 
