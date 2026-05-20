@@ -3,91 +3,79 @@
 [![tests](https://github.com/RahulModugula/witness/actions/workflows/test.yml/badge.svg)](https://github.com/RahulModugula/witness/actions/workflows/test.yml)
 [![python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![license: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-A small FastAPI service that watches a procedure video and tells you what
-happened: which objects were on screen, which moved, and which the person
-actually touched. The output is JSON plus annotated keyframes you can show
-a reviewer.
+watches a procedure video and tells you who touched what, when. fastapi
+in front, yolo-world + bot-sort + mediapipe in the back, ~25s on cpu for
+an 8s clip. json + annotated keyframes out.
 
-![witness demo — the 5 interaction-peak frames + 2 motion transitions from the sample video](docs/demo.gif)
+![demo](docs/demo.gif)
 
-Built as the SDE intern technical assessment for [Edrevel AI](https://edrevel.com).
-Edrevel's existing product qualifies workers through self-assessments, manager
-reviews, and SOP-derived training modules — the [Britannia case
-study](https://edrevel.com/ai-powered-workforce-development-training-britannia-case-study/)
-walks through that workflow across 18 plants and 431 officers. What it
-doesn't currently do is verify procedural adherence from video footage of the
-actual work. That's the gap `witness` slots into, so the framing throughout
-this repo is "minimum prototype of *that* loop" rather than "generic
-detection demo."
+built over a weekend as the SDE intern technical assessment for
+[Edrevel AI](https://edrevel.com). edrevel's current product qualifies
+factory workers through self-assessments and manager grading, and the
+[Britannia case study](https://edrevel.com/ai-powered-workforce-development-training-britannia-case-study/)
+walks through that across 18 plants and 431 officers. the thing that
+isn't in the case study is *did the technician actually follow the SOP
+on this particular run*. that's the gap witness slots into.
 
-The bundled sample is an 8-second clip of a lab tech plugging a USB cable
+bundled sample is an 8-second clip of a lab tech plugging a usb cable
 into an Agilent Cary 60 spectrophotometer.
 
-## Run it in 30 seconds
+## run it
 
 ```
-make setup            # one-time: venv + pip install
-make verify           # runs the real ML pipeline on data/uploads/sample.mp4
+make setup
+make verify          # real ML pipeline on data/uploads/sample.mp4
 ```
 
-Or drive it through HTTP:
+or use the http api:
 
 ```
-make run              # FastAPI on :8000
-make demo             # in another shell: curl through the API end-to-end
+make run             # fastapi on :8000
+make demo            # in another shell: curl through the api end-to-end
 ```
 
-UI at `http://localhost:8000/`, Swagger at `/docs`.
+ui at `localhost:8000`, swagger at `/docs`.
 
-## What you actually get
+## numbers from the bundled sample
 
-CPU-only, MacBook Pro M1 Max:
+cpu-only, m1 max:
 
-| metric                | value                                       |
-|-----------------------|---------------------------------------------|
-| pipeline wall time    | 25.7s on the 8s sample (~3x real-time)      |
-| objects detected      | 10 (5 distinct classes)                     |
-| interactions found    | 5 (technician ↔ spectrophotometer)          |
-| keyframes saved       | 24 (motion transitions + interaction peaks) |
-| tests                 | 34 pytest cases, ~0.8s                      |
+```
+pipeline wall time     25.7s on the 8s sample (~3x real-time)
+objects detected       10 (5 distinct classes)
+interactions found     5 (technician ↔ spectrophotometer)
+keyframes saved        24
+pytest                 34 cases, 0.8s
+```
 
-Per-stage latency breakdown (also reported in every result JSON under
+per-stage breakdown (also reported in the result json under
 `videoMetadata.stage_timings`):
 
-| stage                   | time   | share | what runs                          |
-|-------------------------|--------|-------|------------------------------------|
-| detect + track          | 21.7s  | 84%   | YOLO-World inference + BoT-SORT    |
-| hand pose               | 3.6s   | 14%   | MediaPipe Hands over each frame    |
-| assemble + keyframes    | 0.3s   | 1%    | motion + interaction + bbox draws  |
+```
+detect + track         21.7s   84%   yolo-world inference + bot-sort
+hand pose               3.6s   14%   mediapipe over each frame
+assemble + keyframes    0.3s    1%   motion + interaction + bbox draws
+```
 
-If this needed to be faster, the lever is the detector: an ONNX export
-plus int8 quantization would roughly halve that line. The pure-function
-math layer is already negligible.
+detection dominates. if i needed to halve the wall time the lever is
+an onnx export + int8 quantization of the detector. the pure-function
+math layer is essentially free.
 
-A representative interaction-peak keyframe (frame 119, technician's hand
-visibly on the instrument):
-
-![interaction peak frame 119](docs/sample_interaction_frame_119.jpg)
-
-Full annotated set is at `data/keyframes/<task_id>/` after a run. Three hero
-frames and the full result JSON are committed under `docs/`.
-
-## Architecture
+## what the pipeline does
 
 ```
-   browser/curl  ─POST /tasks─▶  FastAPI
+   browser/curl ──POST /tasks──▶  fastapi
                                     │ BackgroundTasks
                                     ▼
                   ┌─────────────────────────────────────┐
-                  │  YOLO-World v2  +  BoT-SORT tracker │
+                  │  yolo-world v2  +  bot-sort tracker │
                   │              │                       │
                   │              ▼                       │
                   │  track_merge (dedupe fragmented IDs) │
                   │              │                       │
                   │              ▼                       │
-                  │  MediaPipe Hands (21 landmarks)      │      SQLite
+                  │  mediapipe hands (21 landmarks)      │      sqlite
                   │              │                       │   ┌──────────┐
                   │              ▼                       │◀──┤  tasks   │
                   │  motion + interaction (pure fn)      │   └──────────┘
@@ -97,41 +85,38 @@ frames and the full result JSON are committed under `docs/`.
                   └─────────────────────────────────────┘
 ```
 
-What each module does (`app/`):
+modules in `app/`:
 
-| file | role |
-|------|------|
-| `main.py` | routes, error handlers, lifespan model warmup |
-| `tasks.py` | background-task entry, status transitions |
-| `db.py`, `models.py` | SQLAlchemy 2.x, single `tasks` table |
-| `schemas.py` | Pydantic IO + ResultPayload |
-| `pipeline/detector.py` | YOLO-World wrapper, lazy singleton |
-| `pipeline/pose.py` | MediaPipe Hands wrapper |
-| `pipeline/track_merge.py` | post-process: collapse same-class duplicate tracks |
-| `pipeline/motion.py` | pure-fn motion classification |
-| `pipeline/interaction.py` | pure-fn interaction detection |
-| `pipeline/keyframes.py` | pick + annotate + write JPGs |
-| `pipeline/assemble.py` | glue everything into the final JSON |
+```
+main.py              fastapi routes, error handlers, lifespan warmup
+tasks.py             background task entry, status transitions
+db.py + models.py    sqlalchemy 2.x, one tasks table
+schemas.py           pydantic io + ResultPayload
+pipeline/
+  detector.py        yolo-world wrapper, lazy singleton
+  pose.py            mediapipe hands wrapper
+  track_merge.py     post-process: collapse same-class duplicates
+  motion.py          pure-fn motion classification
+  interaction.py     pure-fn interaction detection
+  keyframes.py       pick + annotate + save jpgs
+  assemble.py        glue
+```
 
-## API
+## api
 
-All responses are JSON. Errors share one shape: `{"detail": "...", "code": "..."}`.
+| method | path | what |
+|--------|------|------|
+| POST   | `/tasks` | upload a video, returns 201 with `task_id` |
+| GET    | `/tasks` | paginated list (`?limit=20&offset=0`) |
+| GET    | `/tasks/{id}` | task status |
+| GET    | `/tasks/{id}/result` | full result. 409 if not done, 500 if failed |
+| GET    | `/tasks/{id}/keyframes/{filename}` | serve a saved jpg |
+| GET    | `/health` | `{status, version, model}` |
+| GET    | `/docs` | auto swagger |
+| GET    | `/` | upload ui |
 
-| method | path | what it does |
-|--------|------|--------------|
-| POST | `/tasks` | upload a video (multipart `file`), returns 201 with task_id |
-| GET | `/tasks` | paginated list (`?limit=20&offset=0`) |
-| GET | `/tasks/{id}` | task status (PENDING / PROCESSING / DONE / FAILED) |
-| GET | `/tasks/{id}/result` | full result. 409 if not done, 500 if failed |
-| GET | `/tasks/{id}/keyframes/{filename}` | serves a saved JPG |
-| GET | `/health` | `{status, version, model}` |
-| GET | `/docs` | auto Swagger UI |
-| GET | `/` | the upload UI |
-
-OpenAPI spec is committed at [`docs/openapi.json`](docs/openapi.json) so you
-can read the contract without booting the server.
-
-Curl example:
+errors share one shape: `{"detail": "...", "code": "..."}`. openapi spec
+is at [`docs/openapi.json`](docs/openapi.json).
 
 ```
 curl -X POST -F "file=@data/uploads/sample.mp4" http://localhost:8000/tasks
@@ -140,10 +125,11 @@ curl -X POST -F "file=@data/uploads/sample.mp4" http://localhost:8000/tasks
 curl http://localhost:8000/tasks/<uuid>/result | jq .
 ```
 
-## Result schema
+## result schema
 
-Matches the brief's required fields, plus a few additive ones I needed for
-the keyframe URLs and the latency story:
+matches the brief's required fields plus a few i needed for keyframe urls
+and the latency story. validated on every write through
+`app/schemas.py::ResultPayload`.
 
 ```json
 {
@@ -151,9 +137,14 @@ the keyframe URLs and the latency story:
     "filename": "sample.mp4",
     "duration_seconds": 8.0, "frame_count": 192, "fps": 24.0,
     "width": 1280, "height": 720, "codec": "h264",
-    "processing_time_seconds": 25.0,
+    "processing_time_seconds": 25.7,
     "model": "yolov8s-worldv2.pt", "tracker": "botsort",
-    "degraded_interaction": false
+    "degraded_interaction": false,
+    "stage_timings": {
+      "detect_track_seconds": 21.7,
+      "hand_pose_seconds": 3.6,
+      "assemble_keyframes_seconds": 0.3
+    }
   },
   "objectsDetected": [
     {
@@ -182,205 +173,174 @@ the keyframe URLs and the latency story:
 }
 ```
 
-Schema validation happens on every write (`app/schemas.py::ResultPayload`).
+## how it works
 
-## How it works
+### detection
 
-### Detection: YOLO-World v2
+coco has 80 classes. spectrophotometer and cable aren't in any of them.
+yolo-world takes a list of plain-english class prompts at runtime and
+matches clip embeddings to image regions, so detection is zero-shot. i
+use the small v2 weights. classes get set once at construction because
+calling `set_classes` repeatedly hits a torch version-counter bug in
+ultralytics 8.3.x.
 
-COCO doesn't have `spectrophotometer` or `cable` as classes. YOLO-World lets
-you pass a list of plain-English class prompts at runtime and matches CLIP
-embeddings to image regions. I use `yolov8s-worldv2.pt` (the v2 small
-weights). Classes get set once at construction; calling `set_classes`
-repeatedly during inference hits a torch version-counter bug in ultralytics
-8.3.x.
+### tracking
 
-### Tracking: BoT-SORT
+bot-sort is the ultralytics default since yolo11 and adds global motion
+compensation to bytetrack. tuned config at
+`app/pipeline/botsort_tuned.yaml`. two changes from default:
+`track_buffer 30 → 60` so a brief hand occlusion doesn't kill the track,
+`match_thresh 0.8 → 0.7` for easier re-id after that occlusion.
+`persist=True` keeps ids alive across the streamed inference.
 
-Ultralytics' default since YOLO11. The tuned config is at
-`app/pipeline/botsort_tuned.yaml`:
-- `track_buffer: 60` (default 30) so a brief hand occlusion doesn't kill the track
-- `match_thresh: 0.7` (default 0.8) for easier re-ID after that occlusion
+### dedupe fragmented tracks
 
-`persist=True` keeps IDs alive across the streamed inference.
+if you give yolo-world multiple synonyms (`spectrophotometer` and
+`scientific instrument`), both fire on the same physical object and you
+get two track ids. `track_merge.py` walks the tracker output and unions
+same-class tracks whose mean bboxes have iou ≥ 0.3, using the lower id
+as root. same-frame collisions get nms-resolved. six unit tests pin the
+invariants. cuts the sample's raw 16+ tracks down to 10 stable objects.
 
-### Dedupe fragmented tracks
+### motion classification
 
-Open-vocab prompting often produces two slightly different bboxes for the
-same object when you list synonyms (`spectrophotometer` and `scientific
-instrument`). BoT-SORT then gives them separate IDs. `track_merge.py` walks
-the tracker output and unions any same-class tracks whose mean bboxes have
-IoU >= 0.3, using the lower track ID as root. Same-frame collisions get
-NMS-resolved. Six tests pin the invariants.
+per track: centroid + bbox diagonal per frame. mean displacement over a
+5-frame window, normalized by bbox diagonal so it's scale-invariant.
+compare to threshold 0.015. hysteresis with min_run=3 so a state change
+has to persist for 3 frames or it gets absorbed (kills flicker). missing
+frames inherit the prior state so the output covers `[0, n-1]` exactly
+with no holes. thresholds all live in `app/config.py`.
 
-This cuts the raw 16+ tracks on the sample down to 10 stable objects.
+### interaction detection
 
-### Motion classification
+mediapipe gives 21 landmarks per detected hand. fingertips (indices 4,
+8, 12, 16, 20) are the physical contact points. a frame counts as
+interacting iff:
 
-`pipeline/motion.py` is the rubric's "easily understandable mathematical
-helper functions" line item. Per track:
+1. at least one fingertip is inside the object's bbox, expanded by 15%
+   for near-miss tolerance.
+2. the hand's wrist landmark is inside the person's bbox. this is the
+   ownership check. without it multi-person scenes cross-attribute hands.
 
-1. Compute per-frame centroid + bbox diagonal
-2. Mean centroid displacement over a 5-frame window, normalized by bbox
-   diagonal (makes it scale-invariant)
-3. Compare to threshold 0.015 → per-frame moving / stationary
-4. Collapse into intervals with hysteresis `min_run=3`: any state change
-   that doesn't persist for >=3 frames gets absorbed into its neighbor.
-   This kills flicker.
-5. Gap-fill: missing frames inherit the prior state, so the output covers
-   `[0, frame_count-1]` exactly with no holes
+same hysteresis as motion. per-frame fingertip counts also drive
+keyframe selection.
 
-All knobs live in `app/config.py`.
+fallback: if mediapipe finds zero hands across the entire video (rare),
+drop to `iou(person, object) > 0.05` and set `degraded_interaction:
+true`. on the sample this doesn't fire (hands are found in 180/192
+frames).
 
-### Interaction detection
+### keyframes
 
-MediaPipe Hands returns 21 landmarks per detected hand. Fingertips
-(indices 4, 8, 12, 16, 20) are the physical contact points, so that's the
-primary signal. A frame counts as interacting when:
+two kinds per object: `motion_transition` (first frame of each new
+motion state interval) and `interaction_peak` (frame inside each
+interaction interval with the most fingertips in the bbox). each saved
+jpg gets the bbox drawn on it (green for interactions, amber for
+motion) plus a label like `spectrophotometer (id=2) <-> person id=0`,
+so you can look at the image and instantly see what was detected without
+reading the json.
 
-1. At least one fingertip lies inside the object's expanded bbox
-   (expand=1.15 for a small near-miss tolerance)
-2. The hand's wrist landmark lies inside the person's bbox — this is the
-   ownership check, prevents one person's hand getting attributed to another
+### tasks + storage
 
-Same hysteresis as motion. Per-frame fingertip counts also drive keyframe
-selection.
+`BackgroundTasks` runs the pipeline after the response returns. sqlite
+via sqlalchemy 2.x. one `tasks` table. result jsons go to disk, the db
+just stores the path. detector + pose extractor are module-level
+singletons warmed up in fastapi's lifespan hook, so the ~3s model load
+happens at startup not on the first request.
 
-Fallback: if MediaPipe finds zero hands across the whole video (rare),
-drop to `IoU(person, object) > 0.05` and set `degraded_interaction: true`.
-On the sample this never fires — hands are found in 180/192 frames.
+## stuff that doesn't work
 
-### Keyframes
+- **cable isn't detected on this sample.** yolo-world v2 small can't
+  find the usb cable in any of the 192 frames, even with several
+  cable-adjacent prompts. the sample is a synthetic veo-generated clip
+  and the model's open-vocab embedding is weak on thin objects in
+  synthetic footage. `yolov8m-worldv2` does detect the cable but trades
+  away spectrophotometer recall in the early frames, which kills the
+  interaction count. shipped with -s. real fix is a fine-tune on
+  customer footage.
+- **two spectrophotometer track ids survive merging.** they have low
+  mean-bbox iou (slightly different crops from competing prompts). the
+  one with actual interactions captures all 5 cleanly so the output is
+  fine. real fix is a learned re-id head.
+- **wrist-in-bbox ownership has a wide-shot edge case** where the
+  person bbox can miss the wrist of a hand reaching across frame.
+  doesn't bite on this sample. fallback would be
+  `iou(hand_bbox, person_bbox)`.
 
-Two kinds, per object:
-- `motion_transition`: first frame of each new motion-state interval
-- `interaction_peak`: frame inside each interaction interval with the
-  highest fingertip-in-bbox count
-
-Each saved JPG is annotated with the tracked bbox (green for interactions,
-amber for motion) and a label like `spectrophotometer (id=2) <-> person
-id=0`. So you can look at the keyframe and immediately see what was
-detected, without cross-referencing the JSON.
-
-### Background tasks + storage
-
-`BackgroundTasks` runs the pipeline after the response returns. SQLite via
-SQLAlchemy 2.x with the `Mapped` / `mapped_column` style. Single `tasks`
-table. Result JSONs live on disk, only the path goes in the DB.
-
-The detector and pose extractor are module-level singletons warmed up in
-FastAPI's lifespan hook, so the ~3s model load happens at startup, not on
-the first request.
-
-## Stuff that doesn't work
-
-A few real failure modes worth flagging up-front rather than burying:
-
-- **The cable isn't detected on this sample.** YOLO-World v2 small can't
-  pick up the USB cable across any of the 192 frames, even with several
-  cable-adjacent prompts (`cable`, `usb cable`, `wire`, `cord`, etc.). The
-  sample is a synthetic Veo-generated clip and the model's open-vocab
-  embedding underperforms on thin objects in synthetic footage. The larger
-  `yolov8m-worldv2` does detect the cable but trades away spectrophotometer
-  recall in the early frames — which kills the interaction count, the
-  metric that actually matters for this brief — so I shipped with `-s`.
-  Fix in production is a fine-tune on real customer footage.
-- **Two spectrophotometer tracks survive `track_merge`.** They have low
-  mean-bbox IoU (slightly different crops from competing CLIP prompts).
-  The one with actual interactions captures all 5 cleanly so it didn't
-  hurt the output. Real fix is a learned re-ID head.
-- **Wrist-in-bbox hand ownership has a wide-shot edge case** where the
-  person bbox can exclude the wrist of a hand reaching across frame.
-  Doesn't bite on this sample, but I'd add an `IoU(hand_bbox, person_bbox)`
-  fallback in production.
-
-## Tests
+## tests
 
 ```
-make test       # 34 passed in ~0.8s
+make test            # 34 passed in ~0.8s
 ```
 
 | file | what it covers |
 |------|----------------|
-| `test_motion.py` (9) | centroid math, hysteresis, gap-fill, full-range coverage |
-| `test_interaction.py` (11) | fingertip-in-bbox, wrist ownership, min-run, IoU fallback |
-| `test_track_merge.py` (6) | same-class merge, cross-class isolation, NMS resolution |
-| `test_assemble.py` (1) | full payload passes the Pydantic schema |
-| `test_api.py` (7) | upload + lifecycle + 4xx paths via TestClient |
+| test_motion.py (9) | centroid math, hysteresis, gap-fill, full-range coverage |
+| test_interaction.py (11) | fingertip-in-bbox, wrist ownership, min-run, iou fallback |
+| test_track_merge.py (6) | same-class merge, cross-class isolation, nms resolution |
+| test_assemble.py (1) | full payload passes pydantic schema |
+| test_api.py (7) | upload + lifecycle + 4xx paths via TestClient |
 
-API tests use `STUB_PIPELINE=1` so they don't need the YOLO weights — the
-real ML path is exercised separately by `make verify`. `RUN_INLINE=1`
-makes the background task run synchronously inside the request handler so
-the tests are deterministic.
+api tests use `STUB_PIPELINE=1` so they don't need the yolo weights —
+the real ml path is exercised separately by `make verify`. `RUN_INLINE=1`
+makes the background task run synchronously inside the request handler
+so tests are deterministic.
 
-Latest transcript: [`docs/test_run.txt`](docs/test_run.txt). CI at
-`.github/workflows/test.yml` runs the same suite on every push to `main`.
+ci at `.github/workflows/test.yml` runs the same suite on every push.
 
-## Trade-offs I made
+## tradeoffs i made
 
-A few things I'd do differently in a non-take-home version:
+- **BackgroundTasks over celery/arq.** right for a single-process demo,
+  wrong for production. upgrade path is arq before reaching for celery.
+- **sqlite over postgres.** one file, no external deps. postgres + alembic
+  when you need to survive process restarts in production.
+- **class list set at startup.** repeated `set_classes` hits a torch bug.
+  if dynamic vocab per request becomes a product requirement the right
+  shape is one worker process per active vocabulary, behind a router.
+- **geometric interaction heuristic.** defensible for a one-day build. a
+  learned hoi model (100doh-style) would distinguish "fingertip near"
+  from "fingertip gripping". concrete replacement target.
+- **jpg q=90 keyframes** (~140kb each). png would be 5-10x larger for
+  no gain on synthetic frames.
+- **cpu-only.** gpu would be ~3-5x faster but the brief explicitly avoids
+  gpu assumptions.
 
-- **BackgroundTasks over Celery/ARQ.** Right for a single-process demo,
-  wrong for production. Upgrade path is ARQ (async-native, Redis-backed,
-  pairs cleanly with FastAPI) before reaching for Celery.
-- **SQLite over Postgres.** One file, no external deps. Production wants
-  Postgres + Alembic.
-- **Class list set at startup, not per-request.** Repeated `set_classes`
-  hits a torch bug. If dynamic vocab per request is ever needed, the
-  right shape is one worker process per active vocabulary behind a router.
-- **Geometric interaction heuristic.** Defensible for a one-day build but
-  a learned HOI model (100DOH-style) would correctly distinguish
-  "gripping" from "near". Concrete replacement target.
-- **JPG q=90 keyframes** (~140KB each). PNG would be 5-10x larger for no
-  visible gain on these synthetic frames.
-- **CPU-only.** GPU would be ~3-5x faster but the brief explicitly avoids
-  GPU assumptions.
+deliberately left out: docker, auth, cors, websockets, alembic, multiple
+workers. each would be positive in production. putting them in a
+take-home signals can't-scope.
 
-What I deliberately left out: Docker, auth, CORS, WebSockets, Alembic,
-multiple workers. Each would be a positive in production. Putting them in
-a take-home signals can't-scope.
+## next, if i had more time
 
-## What I'd do with more time (Edrevel-flavored)
+mapped to edrevel's product surface, not generic polish. the through-line
+is: britannia today gets quarterly manager-graded self-assessment. with
+witness they'd get per-procedure objective verification.
 
-Mapped to your existing product surface area, not generic engineering
-polish. The thread is: Britannia today gets *quarterly* manager-graded
-self-assessments. With `witness` they could get *per-procedure* objective
-verification.
-
-1. **SOP DSL that runs against the JSON trace.** The current output is a
-   *trace*; compliance is a *check*. A small DSL like
+1. **sop dsl that runs against the json trace.** the current output is a
+   *trace*. compliance is a *check*. a small dsl like
    `interaction(person, calibration_solution) BEFORE interaction(person, spectrophotometer)`
-   would let your existing Course Creator surface produce both training
-   modules *and* a runnable compliance check, from the same SOP document.
-   This is the smallest piece that unlocks the largest product wedge.
-2. **Fine-tune YOLO-World on Edrevel customer footage** (Britannia-style
-   plant equipment, PPE, hand tools). Directly fixes the cable miss
-   documented above and lifts recall on real footage. ~1 day of label work
-   plus a few hours of training.
-3. **Replace the geometric interaction heuristic with a learned HOI model**
-   (100DOH-style). The difference between "fingertip *near* an object" and
-   "fingertip *gripping* an object" matters when SOP scoring is on the line.
-4. **Kiosk-mode capture path.** Your Britannia deployment is already on
-   factory-floor kiosks. `witness` would slot in as a "press to record,
-   then walk away" mode that captures + analyzes + signs off in one shot.
-   No upload step needed.
-5. **AWS-native deployment.** Drop-in for your existing infrastructure:
-   S3 for video storage, SQS or EventBridge for the task queue, Lambda
-   (or Fargate, given the YOLO weight size) for workers, RDS Postgres for
-   metadata, KMS-signed result blobs for audit immutability.
-6. **Audit-log immutability.** Procedure traces generated for regulated
-   customers should be append-only and cryptographically signed. Aligns
-   with the FDA 21 CFR Part 11 expectations any life-sciences expansion
-   will hit, and with your existing SOC 2 Type II posture.
-7. **WebSocket progress updates** instead of HTTP polling, plus per-object
-   segmentation masks (YOLO-World has a `-seg` variant) for pixel-precise
+   lets the existing course creator produce both training modules and a
+   runnable compliance check from the same sop document. smallest piece
+   that unlocks the largest product wedge.
+2. **fine-tune yolo-world on real customer footage** (plant equipment,
+   ppe, hand tools). directly fixes the cable miss. ~1 day of label
+   work + a few hours training.
+3. **learned hoi model** instead of the geometric heuristic.
+4. **kiosk-mode capture path.** britannia is already on factory-floor
+   kiosks. witness would slot in as press-record-then-walk-away.
+5. **aws-native deployment.** s3 for videos, sqs/eventbridge for the
+   queue, fargate for workers (model weight is too big for lambda
+   cold-start), rds postgres for metadata, kms-signed result blobs for
+   audit immutability. matches edrevel's existing aws posture.
+6. **audit-log immutability.** procedure traces for regulated customers
+   should be append-only and signed. aligns with fda 21 cfr part 11
+   expectations any life-sciences expansion will hit, and with the
+   existing soc 2 type ii posture.
+7. **websocket progress updates** instead of polling. per-object
+   segmentation masks (yolo-world has a -seg variant) for pixel-precise
    interaction tests when bbox proximity isn't enough.
-8. **Worker pool + ARQ + load balancer** so the service can handle
-   concurrent uploads instead of the current single-process limit. Your
-   "12,000+ concurrent sessions" number from the case studies sets the
-   actual bar this needs to clear.
+8. **worker pool + arq + load balancer** to handle real concurrency.
 
-## Stack
+## stack
 
 ```
 fastapi[standard]==0.115.6   uvicorn[standard]==0.32.1
@@ -390,55 +350,52 @@ mediapipe==0.10.18           numpy==1.26.4       pillow==11.0.0
 pytest==8.3.4                pytest-asyncio==0.25.0   httpx==0.28.1
 ```
 
-Python 3.11 (MediaPipe wheels are reliable on 3.11, sometimes flakey on
-newer). CPU-only. No paid APIs. Model weights download on first run
-(~25 MB for the S model).
+python 3.11. cpu-only. no paid apis. model weights download on first
+run (~25mb for the s model).
 
-## Project layout
+## layout
 
 ```
 witness/
 ├── app/
-│   ├── main.py             # FastAPI routes + handlers
-│   ├── tasks.py            # background pipeline entry
-│   ├── config.py           # pydantic-settings: thresholds, prompts, paths
-│   ├── db.py, models.py    # SQLAlchemy 2.x
+│   ├── main.py            fastapi routes + handlers
+│   ├── tasks.py           background pipeline entry
+│   ├── config.py          pydantic-settings: thresholds, prompts, paths
+│   ├── db.py, models.py   sqlalchemy 2.x
 │   ├── schemas.py
 │   ├── storage.py, logging_config.py
 │   └── pipeline/
-│       ├── detector.py     # YOLO-World + BoT-SORT
-│       ├── pose.py         # MediaPipe Hands
+│       ├── detector.py    yolo-world + bot-sort
+│       ├── pose.py        mediapipe hands
 │       ├── track_merge.py
-│       ├── motion.py       # pure-fn motion logic
-│       ├── interaction.py  # pure-fn interaction logic
-│       ├── keyframes.py    # pick + annotate + save
-│       ├── assemble.py     # glue
+│       ├── motion.py      pure-fn motion logic
+│       ├── interaction.py pure-fn interaction logic
+│       ├── keyframes.py   pick + annotate + save
+│       ├── assemble.py    glue
 │       ├── video.py
 │       └── botsort_tuned.yaml
-├── static/                 # drag-and-drop upload UI
-├── tests/                  # 34 cases
-├── scripts/
-│   ├── verify.sh, run_pipeline.py    # `make verify` entry
-│   ├── demo.sh             # curl through the HTTP API
-│   └── dump_openapi.py
-├── docs/
-│   ├── openapi.json
-│   ├── sample_result.json
-│   ├── sample_interaction_frame_*.jpg
-│   └── test_run.txt
+├── static/                drag-and-drop ui
+├── tests/                 34 cases
+├── scripts/               make verify entry + helpers
+├── docs/                  openapi.json, sample_result.json, hero frames
 ├── data/uploads/sample.mp4
 ├── .github/workflows/test.yml
 ├── Makefile, requirements.txt, pyproject.toml
+├── CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md
 ├── LICENSE
 └── README.md
 ```
 
-## Time spent
+## contributing + license
 
-About 7 hours: ~4 on the pipeline (detector, tracker, motion, interaction,
-keyframes, assembly), ~1.5 on the API + DB + tests, ~1.5 on the empirical
-investigation of detection quality and this README.
+see [CONTRIBUTING.md](CONTRIBUTING.md). by participating you agree to
+the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). security issues go through
+[SECURITY.md](SECURITY.md).
 
-## License
+MIT. see [LICENSE](LICENSE).
 
-MIT. See [LICENSE](LICENSE).
+## time spent
+
+about 7 hours: ~4 on the pipeline (detector, tracker, motion,
+interaction, keyframes, assembly), ~1.5 on the api + db + tests, ~1.5
+on the empirical investigation of detection quality + this readme.
