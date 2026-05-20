@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Data — keep sample.mp4, drop everything else
+data/uploads/*
+!data/uploads/sample.mp4
+data/results/
+data/keyframes/
+
+# DBs
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Model weights (downloaded on first run)
+*.pt
+!tests/fixtures/*.pt
+
+# Local-only docs (the design brief)
+docs/brief.md
+
+# Personal / outbound-comms drafts — never push these to a public repo
+# (submission emails, Loom scripts, recruiter notes, prep material)
+_personal/

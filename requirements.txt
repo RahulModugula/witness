@@ -1,0 +1,17 @@
+fastapi[standard]==0.115.6
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+sqlalchemy==2.0.36
+pydantic==2.10.4
+pydantic-settings==2.7.0
+ultralytics==8.3.55
+opencv-python-headless==4.10.0.84
+mediapipe==0.10.18
+numpy==1.26.4
+pillow==11.0.0
+pytest==8.3.4
+pytest-asyncio==0.25.0
+httpx==0.28.1
+clip @ git+https://github.com/ultralytics/CLIP.git
+lap==0.5.13
+

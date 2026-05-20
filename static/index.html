@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>witness</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>witness</h1>
+      <p class="sub">
+        Upload a procedure video. The service detects objects, tracks them,
+        flags hand-object interactions, and gives you a JSON trace.
+      </p>
+    </header>
+
+    <section id="dropzone" class="dropzone">
+      <input id="file" type="file" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska" hidden />
+      <button id="pick" type="button">Choose video</button>
+      <span class="hint">or drag &amp; drop a .mp4 / .mov / .avi / .mkv here</span>
+      <div id="filename" class="filename" hidden></div>
+      <button id="submit" type="button" class="primary" disabled>Analyze</button>
+    </section>
+
+    <section id="status-card" class="status-card" hidden>
+      <div class="row">
+        <span class="label">Task</span>
+        <code id="task-id"></code>
+      </div>
+      <div class="row">
+        <span class="label">Status</span>
+        <span id="status-badge" class="badge">PENDING</span>
+        <span id="elapsed" class="elapsed"></span>
+      </div>
+      <div id="error" class="error" hidden></div>
+    </section>
+
+    <section id="result" hidden>
+      <h2>Detected objects</h2>
+      <div id="object-summary" class="object-summary"></div>
+
+      <h2>Keyframes</h2>
+      <div id="keyframes" class="keyframes"></div>
+
+      <h2>Raw JSON</h2>
+      <pre id="json"></pre>
+    </section>
+
+    <footer>
+      <a href="/docs" target="_blank">Swagger UI</a> ·
+      <a href="/health" target="_blank">/health</a>
+    </footer>
+  </main>
+
+<script>
+const $ = (q) => document.querySelector(q);
+const fileInput = $("#file");
+const pickBtn = $("#pick");
+const submitBtn = $("#submit");
+const dropzone = $("#dropzone");
+const filenameEl = $("#filename");
+const statusCard = $("#status-card");
+const statusBadge = $("#status-badge");
+const taskIdEl = $("#task-id");
+const elapsedEl = $("#elapsed");
+const errorEl = $("#error");
+const resultEl = $("#result");
+const jsonEl = $("#json");
+const keyframesEl = $("#keyframes");
+const objectSummaryEl = $("#object-summary");
+
+let started = null;
+
+pickBtn.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", () => {
+  if (!fileInput.files[0]) return;
+  filenameEl.textContent = fileInput.files[0].name;
+  filenameEl.hidden = false;
+  submitBtn.disabled = false;
+});
+
+["dragenter", "dragover"].forEach((ev) =>
+  dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.add("over"); })
+);
+["dragleave", "drop"].forEach((ev) =>
+  dropzone.addEventListener(ev, () => dropzone.classList.remove("over"))
+);
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  fileInput.files = e.dataTransfer.files;
+  filenameEl.textContent = f.name;
+  filenameEl.hidden = false;
+  submitBtn.disabled = false;
+});
+
+submitBtn.addEventListener("click", async () => {
+  const f = fileInput.files[0];
+  if (!f) return;
+  submitBtn.disabled = true;
+  errorEl.hidden = true;
+  resultEl.hidden = true;
+  const body = new FormData();
+  body.append("file", f);
+  let r;
+  try {
+    r = await fetch("/tasks", { method: "POST", body });
+  } catch (err) {
+    showError(err.message);
+    return;
+  }
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({ detail: r.statusText }));
+    showError(j.detail || "Upload failed");
+    return;
+  }
+  const { task_id } = await r.json();
+  taskIdEl.textContent = task_id;
+  statusCard.hidden = false;
+  started = Date.now();
+  poll(task_id);
+});
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.hidden = false;
+  submitBtn.disabled = false;
+}
+
+function setStatus(s) {
+  statusBadge.textContent = s;
+  statusBadge.className = "badge " + s.toLowerCase();
+}
+
+async function poll(taskId) {
+  const tick = () => {
+    if (started) elapsedEl.textContent = `${((Date.now() - started) / 1000).toFixed(1)}s`;
+  };
+  const timer = setInterval(tick, 100);
+  try {
+    while (true) {
+      const r = await fetch(`/tasks/${taskId}`);
+      if (!r.ok) {
+        showError("Status request failed");
+        return;
+      }
+      const j = await r.json();
+      setStatus(j.status);
+      if (j.status === "DONE") {
+        const rr = await fetch(`/tasks/${taskId}/result`);
+        const payload = await rr.json();
+        renderResult(taskId, payload);
+        return;
+      }
+      if (j.status === "FAILED") {
+        showError(j.error_message || "Task failed");
+        return;
+      }
+      await new Promise((res) => setTimeout(res, 1500));
+    }
+  } finally {
+    clearInterval(timer);
+    submitBtn.disabled = false;
+  }
+}
+
+function renderResult(taskId, payload) {
+  resultEl.hidden = false;
+  jsonEl.textContent = JSON.stringify(payload, null, 2);
+  objectSummaryEl.innerHTML = "";
+  for (const obj of payload.objectsDetected || []) {
+    const card = document.createElement("div");
+    card.className = "obj-card";
+    const totalInteract = (obj.interactions || [])
+      .reduce((a, i) => a + (i.frame_end - i.frame_start + 1), 0);
+    card.innerHTML = `
+      <h3>#${obj.object_id} <span class="cls">${obj.class}</span></h3>
+      <div class="meta">conf ${(obj.confidence_avg ?? 0).toFixed(2)} · frames ${obj.first_seen_frame}–${obj.last_seen_frame}</div>
+      <div class="meta">motion: ${(obj.motion_history || []).length} intervals</div>
+      <div class="meta">interactions: ${(obj.interactions || []).length} (${totalInteract} frames)</div>
+    `;
+    objectSummaryEl.appendChild(card);
+  }
+  keyframesEl.innerHTML = "";
+  for (const kf of payload.keyFrames || []) {
+    const fig = document.createElement("figure");
+    fig.innerHTML = `
+      <img src="${kf.url}" alt="frame ${kf.frame_number}" loading="lazy" />
+      <figcaption>obj #${kf.object_id} · frame ${kf.frame_number} · ${kf.type}</figcaption>
+    `;
+    keyframesEl.appendChild(fig);
+  }
+}
+</script>
+</body>
+</html>
