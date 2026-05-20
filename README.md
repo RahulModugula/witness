@@ -1,5 +1,7 @@
 # witness
 
+[![tests](https://github.com/RahulModugula/witness/actions/workflows/test.yml/badge.svg)](https://github.com/RahulModugula/witness/actions/workflows/test.yml)
+
 A small FastAPI service that watches a procedure video and tells you what
 happened: which objects were on screen, which moved, and which the person
 actually touched. The output is JSON plus annotated keyframes you can show
