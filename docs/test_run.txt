@@ -1,0 +1,50 @@
+/Users/rahul/Projects/edrevel-object-id/.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:207: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-8.3.4, pluggy-1.6.0 -- /Users/rahul/Projects/edrevel-object-id/.venv/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /Users/rahul/Projects/edrevel-object-id
+configfile: pyproject.toml
+testpaths: tests
+plugins: asyncio-0.25.0, anyio-4.13.0
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None
+collecting ... collected 34 items
+
+tests/test_api.py::test_health PASSED                                    [  2%]
+tests/test_api.py::test_upload_creates_task_and_runs_inline PASSED       [  5%]
+tests/test_api.py::test_unknown_task_returns_404 PASSED                  [  8%]
+tests/test_api.py::test_invalid_file_extension_rejected PASSED           [ 11%]
+tests/test_api.py::test_empty_upload_rejected PASSED                     [ 14%]
+tests/test_api.py::test_get_result_when_done_returns_schema PASSED       [ 17%]
+tests/test_api.py::test_list_tasks_endpoint PASSED                       [ 20%]
+tests/test_api.py::test_keyframe_path_traversal_blocked PASSED           [ 23%]
+tests/test_assemble.py::test_assembled_payload_passes_pydantic_schema PASSED [ 26%]
+tests/test_interaction.py::test_iou_no_overlap_is_zero PASSED            [ 29%]
+tests/test_interaction.py::test_iou_full_overlap_is_one PASSED           [ 32%]
+tests/test_interaction.py::test_fingertips_in_bbox_counts_only_fingers_not_wrist PASSED [ 35%]
+tests/test_interaction.py::test_fingertips_in_bbox_zero_when_all_outside PASSED [ 38%]
+tests/test_interaction.py::test_hand_belongs_to_person_via_wrist PASSED  [ 41%]
+tests/test_interaction.py::test_interaction_full_duration_one_interval PASSED [ 44%]
+tests/test_interaction.py::test_single_frame_touch_filtered_by_min_run PASSED [ 47%]
+tests/test_interaction.py::test_two_separated_runs_emit_two_intervals PASSED [ 50%]
+tests/test_interaction.py::test_no_hands_anywhere_triggers_iou_fallback PASSED [ 52%]
+tests/test_interaction.py::test_hand_not_attributed_to_distant_person PASSED [ 55%]
+tests/test_motion.py::test_compute_centroids_sorted_and_correct PASSED   [ 58%]
+tests/test_motion.py::test_all_stationary_produces_single_interval PASSED [ 61%]
+tests/test_motion.py::test_all_moving_produces_single_interval PASSED    [ 64%]
+tests/test_motion.py::test_stationary_then_moving_two_intervals PASSED   [ 67%]
+tests/test_motion.py::test_short_burst_of_motion_absorbed_by_hysteresis PASSED [ 70%]
+tests/test_motion.py::test_frame_gaps_extend_prior_state PASSED          [ 73%]
+tests/test_motion.py::test_intervals_cover_full_range_no_gaps PASSED     [ 76%]
+tests/test_motion.py::test_empty_input_returns_default_stationary_interval PASSED [ 79%]
+tests/test_motion.py::test_single_observation_returns_stationary PASSED  [ 82%]
+tests/test_track_merge.py::test_empty_input_returns_empty PASSED         [ 85%]
+tests/test_track_merge.py::test_same_class_overlapping_tracks_merge_into_one PASSED [ 88%]
+tests/test_track_merge.py::test_different_classes_never_merge_even_when_bboxes_match PASSED [ 91%]
+tests/test_track_merge.py::test_disjoint_same_class_tracks_do_not_merge PASSED [ 94%]
+tests/test_track_merge.py::test_same_frame_collision_keeps_higher_confidence PASSED [ 97%]
+tests/test_track_merge.py::test_merge_is_deterministic_picks_lower_id_as_root PASSED [100%]
+
+============================== 34 passed in 0.83s ==============================

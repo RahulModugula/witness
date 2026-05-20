@@ -1,0 +1,828 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Edrevel AI \u2014 Object Identification",
+    "description": "Analyzes a video, detects objects with open-vocabulary labels, classifies their motion, and identifies human interactions.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks": {
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Create Task",
+        "operationId": "create_task_tasks_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_task_tasks_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskCreatedOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "List Tasks",
+        "operationId": "list_tasks_tasks_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{task_id}": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Task",
+        "operationId": "get_task_tasks__task_id__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskStatusOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{task_id}/result": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Task Result",
+        "operationId": "get_task_result_tasks__task_id__result_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPayload"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{task_id}/keyframes/{filename}": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Keyframe",
+        "operationId": "get_keyframe_tasks__task_id__keyframes__filename__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Filename"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_create_task_tasks_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "Video file (.mp4 .mov .avi .mkv)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_create_task_tasks_post"
+      },
+      "DetectedObject": {
+        "properties": {
+          "object_id": {
+            "type": "integer",
+            "title": "Object Id"
+          },
+          "class": {
+            "type": "string",
+            "title": "Class"
+          },
+          "confidence_avg": {
+            "type": "number",
+            "title": "Confidence Avg",
+            "default": 0.0
+          },
+          "first_seen_frame": {
+            "type": "integer",
+            "title": "First Seen Frame",
+            "default": 0
+          },
+          "last_seen_frame": {
+            "type": "integer",
+            "title": "Last Seen Frame",
+            "default": 0
+          },
+          "motion_history": {
+            "items": {
+              "$ref": "#/components/schemas/MotionInterval"
+            },
+            "type": "array",
+            "title": "Motion History"
+          },
+          "interactions": {
+            "items": {
+              "$ref": "#/components/schemas/InteractionInterval"
+            },
+            "type": "array",
+            "title": "Interactions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "object_id",
+          "class"
+        ],
+        "title": "DetectedObject"
+      },
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorOut"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "model"
+        ],
+        "title": "HealthOut"
+      },
+      "InteractionInterval": {
+        "properties": {
+          "interacted_by_person": {
+            "type": "integer",
+            "title": "Interacted By Person"
+          },
+          "frame_start": {
+            "type": "integer",
+            "title": "Frame Start"
+          },
+          "frame_end": {
+            "type": "integer",
+            "title": "Frame End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "interacted_by_person",
+          "frame_start",
+          "frame_end"
+        ],
+        "title": "InteractionInterval"
+      },
+      "KeyFrame": {
+        "properties": {
+          "frame_number": {
+            "type": "integer",
+            "title": "Frame Number"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "motion_transition",
+              "interaction_peak"
+            ],
+            "title": "Type"
+          },
+          "object_id": {
+            "type": "integer",
+            "title": "Object Id"
+          },
+          "image_path": {
+            "type": "string",
+            "title": "Image Path"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "frame_number",
+          "type",
+          "object_id",
+          "image_path",
+          "url"
+        ],
+        "title": "KeyFrame"
+      },
+      "MotionInterval": {
+        "properties": {
+          "frame_range": {
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Frame Range"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "moving",
+              "stationary"
+            ],
+            "title": "State"
+          }
+        },
+        "type": "object",
+        "required": [
+          "frame_range",
+          "state"
+        ],
+        "title": "MotionInterval"
+      },
+      "ResultPayload": {
+        "properties": {
+          "videoMetadata": {
+            "$ref": "#/components/schemas/VideoMetadata"
+          },
+          "objectsDetected": {
+            "items": {
+              "$ref": "#/components/schemas/DetectedObject"
+            },
+            "type": "array",
+            "title": "Objectsdetected"
+          },
+          "keyFrames": {
+            "items": {
+              "$ref": "#/components/schemas/KeyFrame"
+            },
+            "type": "array",
+            "title": "Keyframes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "videoMetadata"
+        ],
+        "title": "ResultPayload"
+      },
+      "TaskCreatedOut": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "DONE",
+              "FAILED"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "status",
+          "created_at"
+        ],
+        "title": "TaskCreatedOut"
+      },
+      "TaskListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "TaskListOut"
+      },
+      "TaskStatusOut": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "DONE",
+              "FAILED"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "result_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Url"
+          },
+          "processing_time_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Time Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TaskStatusOut"
+      },
+      "TaskSummary": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "DONE",
+              "FAILED"
+            ],
+            "title": "Status"
+          },
+          "original_filename": {
+            "type": "string",
+            "title": "Original Filename"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "status",
+          "original_filename",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TaskSummary"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VideoMetadata": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "title": "Duration Seconds"
+          },
+          "frame_count": {
+            "type": "integer",
+            "title": "Frame Count"
+          },
+          "fps": {
+            "type": "number",
+            "title": "Fps"
+          },
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          },
+          "codec": {
+            "type": "string",
+            "title": "Codec"
+          },
+          "processing_time_seconds": {
+            "type": "number",
+            "title": "Processing Time Seconds"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "tracker": {
+            "type": "string",
+            "title": "Tracker"
+          },
+          "degraded_interaction": {
+            "type": "boolean",
+            "title": "Degraded Interaction",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "duration_seconds",
+          "frame_count",
+          "fps",
+          "width",
+          "height",
+          "codec",
+          "processing_time_seconds",
+          "model",
+          "tracker"
+        ],
+        "title": "VideoMetadata"
+      }
+    }
+  }
+}
