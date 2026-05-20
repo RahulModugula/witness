@@ -1,0 +1,22 @@
+# BoT-SORT tuned for short single-camera lab videos with an open-vocab
+# detector. The M model outputs lower confidences than COCO YOLOs, so the
+# init / match thresholds are loosened relative to ultralytics defaults.
+#
+# Calibrated via scripts/probe_model.py against data/uploads/sample.mp4:
+#   - Defaults missed the cable entirely (track never initialized).
+#   - track_buffer 60 survives the hand-over-cable occlusion (~10-15 frames).
+#   - new_track_thresh 0.15 lets the cable's lower-conf boxes start a track.
+tracker_type: botsort
+
+track_high_thresh: 0.25   # default 0.25
+track_low_thresh: 0.10    # default 0.1
+new_track_thresh: 0.25    # default 0.25
+track_buffer: 60          # default 30 — survives brief hand occlusion (~10-15 frames)
+match_thresh: 0.7         # default 0.8 — easier re-ID after occlusion
+fuse_score: True
+
+# BoT-SORT specifics
+gmc_method: sparseOptFlow
+proximity_thresh: 0.5
+appearance_thresh: 0.25
+with_reid: False
