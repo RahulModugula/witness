@@ -1,6 +1,9 @@
 # witness
 
 [![tests](https://github.com/RahulModugula/witness/actions/workflows/test.yml/badge.svg)](https://github.com/RahulModugula/witness/actions/workflows/test.yml)
+[![python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![license: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 A small FastAPI service that watches a procedure video and tells you what
 happened: which objects were on screen, which moved, and which the person
