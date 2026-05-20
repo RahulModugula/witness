@@ -26,24 +26,16 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 100 * 1024 * 1024
     allowed_extensions: tuple[str, ...] = (".mp4", ".mov", ".avi", ".mkv")
 
-    # Model. Empirical comparison (scripts/probe_model.py) found:
-    #   - yolov8s-worldv2: strong on spectrophotometer (248 hits) → drives
-    #     interaction detection; misses cable + robotic arm entirely
-    #   - yolov8m-worldv2: detects cable (149 hits) + robotic arm (96 hits)
-    #     but its spec recall is concentrated in late frames (155+), missing
-    #     the early-video frames where the technician's hands actually
-    #     interact with the instrument → produces 0 real interactions
-    # We optimize for the headline metric (real interactions detected) and
-    # ship the S model. Cable detection is documented as a known limitation
-    # in the README — see "Honest limitations".
+    # Model. yolov8s-worldv2 picked over -m: S has better spec recall in the
+    # early-video frames where the actual interactions happen. Trade-off
+    # discussed in the README.
     detector_model: str = "yolov8s-worldv2.pt"
     tracker_yaml: str = str(PROJECT_ROOT / "app" / "pipeline" / "botsort_tuned.yaml")
     detection_conf: float = 0.15
     detection_imgsz: int = 960
     min_track_frames: int = 5
-    # CLIP-prompt phrasings. Each prompt maps via class_aliases to a canonical
-    # label. Multiple synonyms per class boost recall; track_merge.py collapses
-    # the duplicate tracks that the redundant prompts produce.
+    # Each prompt maps via class_aliases to a canonical label. Synonyms boost
+    # recall; track_merge.py collapses any duplicate tracks they produce.
     class_prompts: tuple[str, ...] = (
         "person",
         "cable",

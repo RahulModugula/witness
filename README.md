@@ -5,10 +5,15 @@ happened: which objects were on screen, which moved, and which the person
 actually touched. The output is JSON plus annotated keyframes you can show
 a reviewer.
 
-Built as the SDE intern technical assessment for [Edrevel AI](https://edrevel.ai).
-Edrevel's product checks whether regulated manufacturers follow installation
-SOPs by analyzing recorded procedures, so the framing throughout this repo
-is "minimum prototype of that loop" rather than "generic detection demo."
+Built as the SDE intern technical assessment for [Edrevel AI](https://edrevel.com).
+Edrevel's existing product qualifies workers through self-assessments, manager
+reviews, and SOP-derived training modules — the [Britannia case
+study](https://edrevel.com/ai-powered-workforce-development-training-britannia-case-study/)
+walks through that workflow across 18 plants and 431 officers. What it
+doesn't currently do is verify procedural adherence from video footage of the
+actual work. That's the gap `witness` slots into, so the framing throughout
+this repo is "minimum prototype of *that* loop" rather than "generic
+detection demo."
 
 The bundled sample is an 8-second clip of a lab tech plugging a USB cable
 into an Agilent Cary 60 spectrophotometer.
@@ -247,60 +252,27 @@ The detector and pose extractor are module-level singletons warmed up in
 FastAPI's lifespan hook, so the ~3s model load happens at startup, not on
 the first request.
 
-## Stuff that doesn't work (and what I tried)
+## Stuff that doesn't work
 
-This is the more honest section. Two failure modes I hit during the build,
-why they happened, and what I'd do if I had a second day.
+A few real failure modes worth flagging up-front rather than burying:
 
-### Cable isn't detected on this sample
-
-The brief example shows a `cable` class. Visually the technician is
-plugging a USB cable into the spectrophotometer. But `yolov8s-worldv2`
-fails to detect any cable across all 192 frames, even at `conf=0.03`, even
-with 18 different prompts I exhaustively tried (`cable`, `usb cable`,
-`wire`, `cord`, `plug`, `connector`, `tube`, `hose`, `data cable`,
-`black cable`, etc.).
-
-Why: the sample is a synthetic Veo-generated clip (you can see the Veo
-watermark). YOLO-World v2 small was trained on real photos and its open-
-vocab embedding underperforms on synthetic lab footage of thin objects
-partially occluded by a hand.
-
-What I tried:
-- **Bigger model.** `yolov8m-worldv2` does detect the cable (149 hits, max
-  conf 0.835) using the visually-specific prompt `"blue usb connector"`,
-  and also finds the robotic arm and monitor that S misses.
-- **Hybrid prompt sets** across both models.
-
-Why I shipped with `-s` anyway: with M, spectrophotometer recall is
-concentrated in late frames (155+), missing the early-video frames where
-the technician's hands actually contact the instrument. Net result was
-**0 real interactions**, which is a way worse headline number for an
-*interaction detection* assignment than "cable not detected". I picked the
-metric that matters most for the brief and documented the trade here.
-
-The probe scripts are in the repo for transparency:
-- `scripts/probe_cable.py` — exhaustive prompt search at low conf
-- `scripts/probe_model.py` — S vs M side-by-side
-- `scripts/probe_interaction.py` — debugs the wrist-in-bbox check
-
-### Two spectrophotometer track IDs survive merging
-
-`track_merge` collapses 6+ raw spec tracks down to 2 (id=1 and id=2). The
-two that remain have low mean-bbox IoU because they're slightly different
-crops from competing CLIP prompts. Lowering the IoU threshold further
-would risk merging legitimately distinct objects in multi-instrument
-scenes. The track with the actual interactions (id=2) cleanly captures
-all 5 of them, so it didn't hurt the output. Real fix in production is a
-learned re-ID head, not a geometric merge.
-
-### Wrist-in-bbox ownership check has an edge case
-
-In wide shots MediaPipe can detect a hand whose wrist lands outside the
-YOLO person bbox (person partly off-screen). The ownership check then
-orphans the hand. On this sample the probe found 201 correct ownerships
-and 0 orphans so it isn't biting, but in production I'd add an
-`IoU(hand_bbox, person_bbox)` fallback.
+- **The cable isn't detected on this sample.** YOLO-World v2 small can't
+  pick up the USB cable across any of the 192 frames, even with several
+  cable-adjacent prompts (`cable`, `usb cable`, `wire`, `cord`, etc.). The
+  sample is a synthetic Veo-generated clip and the model's open-vocab
+  embedding underperforms on thin objects in synthetic footage. The larger
+  `yolov8m-worldv2` does detect the cable but trades away spectrophotometer
+  recall in the early frames — which kills the interaction count, the
+  metric that actually matters for this brief — so I shipped with `-s`.
+  Fix in production is a fine-tune on real customer footage.
+- **Two spectrophotometer tracks survive `track_merge`.** They have low
+  mean-bbox IoU (slightly different crops from competing CLIP prompts).
+  The one with actual interactions captures all 5 cleanly so it didn't
+  hurt the output. Real fix is a learned re-ID head.
+- **Wrist-in-bbox hand ownership has a wide-shot edge case** where the
+  person bbox can exclude the wrist of a hand reaching across frame.
+  Doesn't bite on this sample, but I'd add an `IoU(hand_bbox, person_bbox)`
+  fallback in production.
 
 ## Tests
 
@@ -350,27 +322,43 @@ a take-home signals can't-scope.
 
 ## What I'd do with more time (Edrevel-flavored)
 
-Mapped to your product, not generic engineering polish:
+Mapped to your existing product surface area, not generic engineering
+polish. The thread is: Britannia today gets *quarterly* manager-graded
+self-assessments. With `witness` they could get *per-procedure* objective
+verification.
 
-1. **Fine-tune YOLO-World on a small lab dataset** (PPE, common
-   instruments, tools). Directly fixes the cable miss above and lifts
-   recall on real customer footage. Maybe a day of label work + a few
-   hours training.
-2. **Replace the geometric heuristic with a learned HOI model.** The
-   distinction between "fingertip *near* an object" and "fingertip
-   *gripping* an object" matters for SOP scoring.
-3. **SOP DSL on top of the JSON output.** The current payload is a
+1. **SOP DSL that runs against the JSON trace.** The current output is a
    *trace*; compliance is a *check*. A small DSL like
-   `interaction(person, cable) BEFORE interaction(person, spectrophotometer)`
-   would let SOPs be authored declaratively against this trace.
-4. **WebSocket progress updates** instead of polling. Better UX for
-   longer videos.
-5. **Per-object segmentation masks** (YOLO-World has a `-seg` variant) for
-   pixel-precise interaction tests instead of bbox proximity.
-6. **Worker pool + Postgres + ARQ + Docker Compose** for real deployment.
-7. **Audit-log immutability.** Once a procedure trace is generated for a
-   regulated customer it should be append-only and signed. Aligns with
-   the FDA 21 CFR Part 11 expectations life-sciences customers will have.
+   `interaction(person, calibration_solution) BEFORE interaction(person, spectrophotometer)`
+   would let your existing Course Creator surface produce both training
+   modules *and* a runnable compliance check, from the same SOP document.
+   This is the smallest piece that unlocks the largest product wedge.
+2. **Fine-tune YOLO-World on Edrevel customer footage** (Britannia-style
+   plant equipment, PPE, hand tools). Directly fixes the cable miss
+   documented above and lifts recall on real footage. ~1 day of label work
+   plus a few hours of training.
+3. **Replace the geometric interaction heuristic with a learned HOI model**
+   (100DOH-style). The difference between "fingertip *near* an object" and
+   "fingertip *gripping* an object" matters when SOP scoring is on the line.
+4. **Kiosk-mode capture path.** Your Britannia deployment is already on
+   factory-floor kiosks. `witness` would slot in as a "press to record,
+   then walk away" mode that captures + analyzes + signs off in one shot.
+   No upload step needed.
+5. **AWS-native deployment.** Drop-in for your existing infrastructure:
+   S3 for video storage, SQS or EventBridge for the task queue, Lambda
+   (or Fargate, given the YOLO weight size) for workers, RDS Postgres for
+   metadata, KMS-signed result blobs for audit immutability.
+6. **Audit-log immutability.** Procedure traces generated for regulated
+   customers should be append-only and cryptographically signed. Aligns
+   with the FDA 21 CFR Part 11 expectations any life-sciences expansion
+   will hit, and with your existing SOC 2 Type II posture.
+7. **WebSocket progress updates** instead of HTTP polling, plus per-object
+   segmentation masks (YOLO-World has a `-seg` variant) for pixel-precise
+   interaction tests when bbox proximity isn't enough.
+8. **Worker pool + ARQ + load balancer** so the service can handle
+   concurrent uploads instead of the current single-process limit. Your
+   "12,000+ concurrent sessions" number from the case studies sets the
+   actual bar this needs to clear.
 
 ## Stack
 
@@ -412,8 +400,7 @@ witness/
 ├── scripts/
 │   ├── verify.sh, run_pipeline.py    # `make verify` entry
 │   ├── demo.sh             # curl through the HTTP API
-│   ├── dump_openapi.py
-│   └── probe_*.py          # exploratory scripts that informed the choices
+│   └── dump_openapi.py
 ├── docs/
 │   ├── openapi.json
 │   ├── sample_result.json
