@@ -46,7 +46,7 @@ pipeline wall time     25.7s on the 8s sample (~3x real-time)
 objects detected       10 (5 distinct classes)
 interactions found     5 (technician ↔ spectrophotometer)
 keyframes saved        24
-pytest                 34 cases, 0.8s
+pytest                 55 cases, 1.3s
 ```
 
 per-stage breakdown (also reported in the result json under
@@ -110,6 +110,7 @@ pipeline/
 | GET    | `/tasks` | paginated list (`?limit=20&offset=0`) |
 | GET    | `/tasks/{id}` | task status |
 | GET    | `/tasks/{id}/result` | full result. 409 if not done, 500 if failed |
+| POST   | `/tasks/{id}/check` | run SOP rules against the trace, see below |
 | GET    | `/tasks/{id}/keyframes/{filename}` | serve a saved jpg |
 | GET    | `/health` | `{status, version, model}` |
 | GET    | `/docs` | auto swagger |
@@ -172,6 +173,65 @@ and the latency story. validated on every write through
   ]
 }
 ```
+
+## sop compliance check (new in v0.2.0)
+
+the trace by itself is observability, not compliance. compliance is a
+*check* on top of the trace. v0.2.0 ships a tiny dsl that turns
+"here's what happened" into "here's whether it matched the sop".
+
+rule grammar (one rule per line, `#` for comments):
+
+```
+REQUIRED  <event>                  # event must occur at least once
+FORBIDDEN <event>                  # event must NOT occur
+<event> BEFORE <event>             # first ends before second starts
+<event> AFTER  <event>             # first starts after second ends
+<event> DURING <event>             # first is fully contained in second
+```
+
+event grammar:
+
+```
+interaction(person, <class>)       # person touched at least one <class>; * matches any
+motion(<class>, moving|stationary) # at least one <class> entered that motion state
+```
+
+example, run against the bundled `docs/sample_result.json`:
+
+```
+$ curl -X POST http://localhost:8000/tasks/<id>/check \
+       -H "content-type: application/json" \
+       -d '{"rules": "REQUIRED interaction(person, spectrophotometer)\ninteraction(person, spectrophotometer) DURING motion(spectrophotometer, stationary)\nFORBIDDEN interaction(person, bottle)"}'
+
+{
+  "rules_total": 3,
+  "rules_passed": 3,
+  "rules_failed": 0,
+  "all_passed": true,
+  "results": [
+    {"rule": "REQUIRED interaction(person, spectrophotometer)",
+     "op": "REQUIRED", "passed": true,
+     "detail": "found 5 matching interval(s)"},
+    {"rule": "interaction(person, spectrophotometer) DURING motion(spectrophotometer, stationary)",
+     "op": "DURING", "passed": true,
+     "detail": "found a left interval fully inside a right interval"},
+    {"rule": "FORBIDDEN interaction(person, bottle)",
+     "op": "FORBIDDEN", "passed": true,
+     "detail": "no matching interval (as required)"}
+  ]
+}
+```
+
+18 unit tests pin the grammar + the evaluator semantics in
+`tests/test_sop.py`. the parser is hand-rolled regex, ~30 lines; the
+evaluator is pure functions over the result payload, ~80 lines. no new
+dependencies.
+
+this is intentionally a v0.1 of the dsl. quantifiers, durations,
+per-person scoping, and learned-fact extraction (e.g. "fingertip
+*gripping* the cable" vs "fingertip *near* the cable") are all natural
+next steps.
 
 ## how it works
 
@@ -270,7 +330,7 @@ happens at startup not on the first request.
 ## tests
 
 ```
-make test            # 34 passed in ~0.8s
+make test            # 55 passed in ~1.3s
 ```
 
 | file | what it covers |
@@ -278,8 +338,9 @@ make test            # 34 passed in ~0.8s
 | test_motion.py (9) | centroid math, hysteresis, gap-fill, full-range coverage |
 | test_interaction.py (11) | fingertip-in-bbox, wrist ownership, min-run, iou fallback |
 | test_track_merge.py (6) | same-class merge, cross-class isolation, nms resolution |
+| test_sop.py (18) | dsl parser + evaluator: required, forbidden, before, after, during, wildcards |
 | test_assemble.py (1) | full payload passes pydantic schema |
-| test_api.py (7) | upload + lifecycle + 4xx paths via TestClient |
+| test_api.py (10) | upload + lifecycle + 4xx paths + sop check endpoint |
 
 api tests use `STUB_PIPELINE=1` so they don't need the yolo weights —
 the real ml path is exercised separately by `make verify`. `RUN_INLINE=1`
@@ -311,20 +372,19 @@ take-home signals can't-scope.
 
 ## next, if i had more time
 
-mapped to edrevel's product surface, not generic polish. the through-line
-is: britannia today gets quarterly manager-graded self-assessment. with
-witness they'd get per-procedure objective verification.
+the v0.2.0 sop dsl above is the smallest viable version. natural next
+steps mapped to edrevel's product surface, not generic polish:
 
-1. **sop dsl that runs against the json trace.** the current output is a
-   *trace*. compliance is a *check*. a small dsl like
-   `interaction(person, calibration_solution) BEFORE interaction(person, spectrophotometer)`
-   lets the existing course creator produce both training modules and a
-   runnable compliance check from the same sop document. smallest piece
-   that unlocks the largest product wedge.
+1. **dsl v2: quantifiers + durations.** "EVERY interaction(person,
+   calibration_solution) lasts at least 30 frames". counts, durations,
+   per-person scoping. closes the gap between "did it happen" and "did
+   it happen *enough*".
 2. **fine-tune yolo-world on real customer footage** (plant equipment,
    ppe, hand tools). directly fixes the cable miss. ~1 day of label
    work + a few hours training.
-3. **learned hoi model** instead of the geometric heuristic.
+3. **learned hoi model** instead of the geometric heuristic. would
+   distinguish "fingertip gripping" from "fingertip near" — matters for
+   sop scoring.
 4. **kiosk-mode capture path.** britannia is already on factory-floor
    kiosks. witness would slot in as press-record-then-walk-away.
 5. **aws-native deployment.** s3 for videos, sqs/eventbridge for the
@@ -363,6 +423,7 @@ witness/
 │   ├── config.py          pydantic-settings: thresholds, prompts, paths
 │   ├── db.py, models.py   sqlalchemy 2.x
 │   ├── schemas.py
+│   ├── sop.py             sop compliance dsl + evaluator
 │   ├── storage.py, logging_config.py
 │   └── pipeline/
 │       ├── detector.py    yolo-world + bot-sort
@@ -396,6 +457,11 @@ MIT. see [LICENSE](LICENSE).
 
 ## time spent
 
-about 7 hours: ~4 on the pipeline (detector, tracker, motion,
-interaction, keyframes, assembly), ~1.5 on the api + db + tests, ~1.5
-on the empirical investigation of detection quality + this readme.
+about 7 hours for v0.1.0 (the original assessment scope): ~4 on the
+pipeline, ~1.5 on the api + db + tests, ~1.5 on the empirical
+investigation of detection quality + this readme.
+
+then ~2 more hours after submission for v0.2.0 — shipped the sop dsl
+because the idea was nagging at me and "smallest piece that unlocks
+the largest product wedge" felt worth actually building, not just
+sketching.

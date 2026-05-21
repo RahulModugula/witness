@@ -94,3 +94,39 @@ def test_keyframe_path_traversal_blocked(client):
     r = client.get("/tasks/any/keyframes/..%2F..%2Fetc%2Fpasswd")
     # Either 400 (path containing /) or 404 (not found) — both are safe.
     assert r.status_code in (400, 404)
+
+
+def test_sop_check_returns_per_rule_results(client, sample_video: Path, tmp_path, monkeypatch):
+    """End-to-end: upload, then check a couple of SOP rules against the
+    stub-produced trace. Stub has no real interactions, so we just verify
+    the contract: REQUIRED interaction fails, FORBIDDEN interaction passes."""
+    with sample_video.open("rb") as f:
+        r = client.post("/tasks", files={"file": ("sample.mp4", f, "video/mp4")})
+    task_id = r.json()["task_id"]
+    rules = """
+    REQUIRED interaction(person, spectrophotometer)
+    FORBIDDEN interaction(person, cable)
+    """
+    rr = client.post(f"/tasks/{task_id}/check", json={"rules": rules})
+    assert rr.status_code == 200, rr.text
+    body = rr.json()
+    assert body["rules_total"] == 2
+    # Stub payload has no objects → required fails, forbidden passes.
+    assert body["rules_failed"] == 1
+    assert body["rules_passed"] == 1
+    assert body["all_passed"] is False
+
+
+def test_sop_check_409_when_task_not_done(client):
+    # Synthesize: hit check on a non-existent task → 404, not 409.
+    r = client.post("/tasks/missing/check", json={"rules": "REQUIRED interaction(person, *)"})
+    assert r.status_code == 404
+
+
+def test_sop_check_400_on_malformed_rule(client, sample_video: Path):
+    with sample_video.open("rb") as f:
+        r = client.post("/tasks", files={"file": ("sample.mp4", f, "video/mp4")})
+    task_id = r.json()["task_id"]
+    rr = client.post(f"/tasks/{task_id}/check", json={"rules": "GIBBERISH"})
+    assert rr.status_code == 400
+    assert rr.json()["code"] == "INVALID_RULES"

@@ -30,11 +30,14 @@ from .schemas import (
     ErrorOut,
     HealthOut,
     ResultPayload,
+    SOPCheckIn,
+    SOPCheckOut,
     TaskCreatedOut,
     TaskListOut,
     TaskStatusOut,
     TaskSummary,
 )
+from .sop import evaluate as _sop_evaluate
 from .storage import keyframe_path, read_json, result_path, upload_path
 from .tasks import process_video
 
@@ -270,6 +273,42 @@ async def get_task_result(
             detail={"detail": "Result file missing", "code": "RESULT_MISSING"},
         )
     return ResultPayload.model_validate(read_json(path))
+
+
+@app.post(
+    "/tasks/{task_id}/check",
+    response_model=SOPCheckOut,
+    responses={404: {"model": ErrorOut}, 409: {"model": ErrorOut}, 400: {"model": ErrorOut}},
+    tags=["tasks"],
+)
+async def check_sop_compliance(
+    task_id: str,
+    body: SOPCheckIn,
+    session: Annotated[Session, Depends(get_session)],
+) -> SOPCheckOut:
+    """Run a set of SOP rules against this task's result trace.
+
+    The body's `rules` field is plain-text DSL (one rule per line). See
+    `app/sop.py` docstring for grammar. Returns per-rule pass/fail plus a
+    summary. Read-only — does not mutate the task.
+    """
+    task = _task_or_404(session, task_id)
+    if task.status != "DONE":
+        raise HTTPException(
+            409,
+            detail={"detail": f"Task is still {task.status}", "code": "TASK_NOT_DONE"},
+        )
+    path = result_path(task.id)
+    if not path.exists():
+        raise HTTPException(500, detail={"detail": "Result file missing", "code": "RESULT_MISSING"})
+    try:
+        out = _sop_evaluate(body.rules, read_json(path))
+    except ValueError as exc:
+        raise HTTPException(
+            400,
+            detail={"detail": f"Rule parse error: {exc}", "code": "INVALID_RULES"},
+        ) from None
+    return SOPCheckOut.model_validate(out)
 
 
 @app.get(

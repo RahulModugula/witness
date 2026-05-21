@@ -116,3 +116,27 @@ class ResultPayload(BaseModel):
     videoMetadata: VideoMetadata
     objectsDetected: list[DetectedObject] = Field(default_factory=list)
     keyFrames: list[KeyFrame] = Field(default_factory=list)
+
+
+# --------- SOP compliance check ---------
+
+
+class SOPCheckIn(BaseModel):
+    """POST body for /tasks/{id}/check. `rules` is the DSL text."""
+
+    rules: str
+
+
+class SOPRuleResult(BaseModel):
+    rule: str
+    op: str
+    passed: bool
+    detail: str
+
+
+class SOPCheckOut(BaseModel):
+    rules_total: int
+    rules_passed: int
+    rules_failed: int
+    all_passed: bool
+    results: list[SOPRuleResult]

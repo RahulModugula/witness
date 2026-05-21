@@ -1,6 +1,6 @@
 [project]
 name = "witness"
-version = "0.1.0"
+version = "0.2.0"
 description = "A FastAPI service that watches a procedure video and proves what happened, when, and by whom."
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
